@@ -39,5 +39,5 @@ opens the GUI
 
 (5) Clicking "Plot NMF" or "Plot ions" will load the data and convert it to an image cube (MAT file).  Once loaded omniSpect does not recompute the data cube on subsequent analyses.
 
-(6) Questions or comments?  Please contact parry@bme.gatech.edu
+(6) Questions or comments?  Please contact parryrm@appstate.edu
 

@@ -48,31 +48,91 @@ disp('Centroided data!');
 
 		% generate vector of inferred m/z values with logarithmic spacing where the factor between
 		% adjacent m/z is selected to be (N+1)/N
-		N=17000;
+		%N=17000;
+                N=90000;
 		len=ceil((log(maxMZ)-log(minMZ))/(log(N+1)-log(N)));
 		imgZ=minMZ.*((N+1)/N).^(0:len)';
-		
+		disp(['imgZ: [min, max, N] = [' num2str(min(imgZ)) ',' num2str(max(imgZ)) ',' num2str(length(imgZ)) ']'])
+
 		% place peaks in the nearest m/z bin.
 		disp('inserting peaks into profile');
-		intensities=zeros(length(imgZ),length(out.scan.intensity));
+		intensities=sparse(length(imgZ),length(out.scan.intensity), 10000000);
+		%intensities=zeros(length(imgZ),length(out.scan.intensity),'single');
+		tic;
+                fprintf('%5.1f%% in %6.1f seconds', 0, toc);
+                b = repmat(char(8), 1, 24);
+		total_peaks = sum(cellfun(@numel, out.scan.intensity));
+		ii = nan(total_peaks,1);
+		jj = nan(total_peaks,1);
+		ss = nan(total_peaks,1);
+		mm = length(imgZ);
+		nn = length(out.scan.intensity);
+		k=0;
 		for i=1:length(out.scan.intensity),
+                	if mod(i,10) == 0,
+				fprintf('%s%5.1f%% in %6.1f seconds', b, 100 * (i-1) / length(out.scan.intensity), toc);
+			end
 			idx=round(log(out.scan.mz{i}/minMZ)/log((N+1)/N))+1;
-			intensities(idx,i)=out.scan.intensity{i};
+			%intensities(idx,i)=out.scan.intensity{i};
+			index = k+1:k+length(idx);
+			ii(index) = idx;
+			jj(index) = i;
+			ss(index) = out.scan.intensity{i};
+			k = k + length(idx);
 		end;
+
+		intensities = sparse(ii, jj, ss, mm, nn);
+		clear ii jj ss
+                fprintf('%s%5.1f%% in %6.1f seconds\n', b, 100, toc);
+
+		%disp(['bins with at least on peak: ' num2str(sum(any(intensities~=0,2)))]);
+		fprintf('%d / %d = %f%% entries are nonzero.\n', nnz(intensities), prod(size(intensities)), 100 * nnz(intensities) / prod(size(intensities)))
 
 		% smooth peaks with a Gaussian to spread them across multiple m/z bins.
 		% convolve with Guassian
 		disp('smoothing peaks with Gaussian window');
-		m=11;
+		m=3;
 		% zero-pad
-		intensities=[zeros(m-1,size(intensities,2));intensities;zeros(m-1,size(intensities,2))];
-		imgZ=minMZ.*((N+1)/N).^(-m+1:len+m-1)';
+		disp('zero pad')
+		tic;
+		intensities=[intensities;zeros(m-1,size(intensities,2))];
+		toc;
+		imgZ=minMZ.*((N+1)/N).^(-(m-1)/2:len+(m-1)/2)';
 		% convolve
 		h=window(@gausswin,m); h=h/sum(h);
-		intensities=filter(h,1,intensities)';
+		%intensities=filter(h,1,intensities)';
+		tic;
+		ii = nan(total_peaks*m,1);
+		jj = nan(total_peaks*m,1);
+		ss = nan(total_peaks*m,1);
+                fprintf('%5.1f%% in %6.1f seconds', 0, toc);
+                b = repmat(char(8), 1, 24);
+		k = 0;
+		for i=1:size(intensities,2),
+                	if mod(i,10) == 0,
+				fprintf('%s%5.1f%% in %6.1f seconds', b, 100 * (i-1) / length(out.scan.intensity), toc);
+			end
+			a = filter(h,1,full(intensities(:,i)));
+			idx = a > 0;
+			num = sum(idx);
+			% intensities(idx, i) = a(idx);
+			index = k+1:k+num;
+			ii(index) = find(idx);
+			jj(index) = i;
+			ss(index) = a(idx);
+			k = k + num;
+		end
+		idx = find(~isnan(ii), 1, 'last');
+		ii(idx+1:end) = [];
+		jj(idx+1:end) = [];
+		ss(idx+1:end) = [];
+		intensities = sparse(jj, ii, ss, nn, mm + m - 1);
+		clear ii jj ss
+		fprintf('%d / %d = %f%% entries are nonzero.\n', nnz(intensities), prod(size(intensities)), 100 * nnz(intensities) / prod(size(intensities)))
+                fprintf('%s%5.1f%% in %6.1f seconds\n', b, 100, toc);
 	else
 		% If the mass spectra are not centroided, just load them in.
-		intensities=double(out.scan.intensity');
+		intensities=single(out.scan.intensity');
 		imgZ=out.scan.mz;
 	end
 
@@ -140,13 +200,32 @@ end;
 
 % For each line of the image, linearly interpolate the ion intensitites between scans to 
 % fill in the image.
-img=zeros(nlines,scansPerLine,nmasses);
 X=min(x):Xsize:max(x);
-for i=1:nlines,
-    j=y==ylines(i) & x>min(x)+1 & x<max(x)-1;
-    img(i,:,:)=interp1(x(j),intensity(j,:),X,'linear',0);
-end;
 Y=ylines;
+if issparse(intensity),
+    tic;
+    fprintf('%5.1f%% in %6.1f seconds', 0, toc);
+    b = repmat(char(8), 1, 24);
+
+    img = cell(nlines,length(X));
+    for i=1:nlines,
+        fprintf('%s%5.1f%% in %6.1f seconds', b, 100 * (i-1) / nlines, toc);
+        j=y==ylines(i) & x>min(x)+1 & x<max(x)-1;
+        nz = any(intensity(j,:)>0);
+        a = zeros(length(X), nmasses);
+        a(:,nz)=interp1(x(j),full(intensity(j,nz)),X,'linear',0);
+        for k=1:length(X),
+            img{i,k} = sparse(a(k,:)');
+        end
+    end
+    fprintf('%s%5.1f%% in %6.1f seconds\n', b, 100, toc);
+else,
+    img=zeros(nlines,scansPerLine,nmasses);
+    for i=1:nlines,
+        j=y==ylines(i) & x>min(x)+1 & x<max(x)-1;
+        img(i,:,:)=interp1(x(j),intensity(j,:),X,'linear',0);
+    end;
+end
 
 function [scanx,scany,ylines]=getScanPositions(scan_times,pos_file,time_file,time_offset)
 % getScanPositions estimates x- and y-coordinates for scans collected at different times 
@@ -263,11 +342,11 @@ dx=diff(x); dy=diff(y);
 
 % The direction is left-to-right when the previous point is to the left,
 % the next point is to the right and the y-coordinate doesn't change.
-R=(dx(1:end-1)>0 & dx(2:end)>0 & dy(1:end-1)==0);
+R=(dx(1:end-1)>0 & dx(2:end)>0 & abs(dy(1:end-1)) < 1e-6);
 
 % The direction is right-to-left when the previous point is to the right,
 % the next point is to the left and the y-coordinate doesn't change.
-L=(dx(1:end-1)<0 & dx(2:end)<0 & dy(1:end-1)==0);
+L=(dx(1:end-1)<0 & dx(2:end)<0 & abs(dy(1:end-1)) < 1e-6);
 
 % pad with 'false'
 R=[false;R;false];

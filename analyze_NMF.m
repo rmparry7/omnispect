@@ -36,12 +36,40 @@ end;
 % load 
 load(cube_file,'img','imgX','imgY','imgZ');
 
-% img is [imgY x imgX x imgZ];
-imgX=single(imgX(1:size(img,2)));
-imgY=single(imgY(1:size(img,1)));
-imgZ=single(imgZ(1:size(img,3)));
 
-img = reshape(single(img),[length(imgY)*length(imgX) length(imgZ)]);
+if iscell(img),
+    % img is [imgY x imgX x imgZ];
+    imgX=single(imgX(1:size(img,2)));
+    imgY=single(imgY(1:size(img,1)));
+    imgZ=single(imgZ(1:length(img{1,1})));
+    img = reshape(img, length(imgY)*length(imgX), 1);
+    nz = sum(cellfun(@nnz,img));
+    ii = nan(nz,1);
+    jj = nan(nz,1);
+    ss = nan(nz,1);
+    k = 0;
+    for i=1:length(img),
+        num = nnz(img{i});
+        index = k+1:k+num;
+        [row, col, v] = find(img{i});
+        if ~all(col==1),
+            error('something wrong!');
+        end
+        ii(index) = i;
+        jj(index) = row;
+        ss(index) = v;
+        k = k+num;
+    end
+    img = sparse(ii,jj,ss,length(imgY)*length(imgX),length(imgZ));
+else,
+    % img is [imgY x imgX x imgZ];
+    imgX=single(imgX(1:size(img,2)));
+    imgY=single(imgY(1:size(img,1)));
+    imgZ=single(imgZ(1:size(img,3)));
+    img = reshape(single(img),[length(imgY)*length(imgX) length(imgZ)]);
+end
+
+size(img)
 
 % Store the results of NMF locally.
 % If this is the first time, run NMF.

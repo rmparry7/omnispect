@@ -1,0 +1,91 @@
+<HTML>
+<HEAD>
+<TITLE>omniSpect: Multispectral Image Analysis</TITLE>
+</HEAD>
+
+<BODY>
+<TABLE border=0 cellpadding=5>
+<tr><td colspan=3 valign="top" align="center"><div id="figs" style="width: 808px; height: 75px">
+        <div style="position:absolute; left:20px; top:0px;"><a href="http://www.gatech.edu/"><img src="./images/gtlogo_small.png" style="border:0px;"></a></div>
+        <div style="position:absolute; left:75px; top:50px;"><a href="http://www.emory.edu/"><img src="./images/emorylogo_small.png" style="border:0px;"></a></div>
+        <div style="position:absolute; left:280px; top:25px;"><a href="http://www.bio-miblab.org/"><img src="./images/biomiblab_small.png" style="border:0px;"></a></div>
+        <div style="position:absolute; left:650px; top:10px;"><a href="./omniSpect.php"><img src="./images/omniSpect_logo.png" height= 75px></a></div>
+</div></td></tr>
+</TABLE>
+
+<TABLE border=0 cellpadding=5>
+<tr><td colspan=2 valign="top" align="left"><div style="width:816px">
+	<ul>
+	<li> Download the omniSpect source code to your web directory (e.g., /var/www/html/omnispect/).
+	<li> Create a symbolic link to point to omniSpect.php:
+<pre>
+    &gt; ln -s omniSpect.php index.php
+</pre>
+	<li> Edit Apache configuration file (e.g., /etc/httpd/conf/httpd.conf) to modify the php configuration for the max_upload_filesize and post_max_size to accomodate <i>large</i> file sizes:
+<pre>
+&lt;VirtualHost *:80&gt;
+    ...
+    php_admin_value upload_max_filesize "4096M"
+    php_admin_value post_max_size "4000M"
+    ...
+&lt;/VirtualHost&gt;
+</pre>
+	<li> Or, update the php configuration file (e.g., /etc/php.ini) to modify upload_max_filesize and post_max_size:
+<pre>
+    ...
+    ; Maximum size of POST data that PHP will accept.
+    post_max_size = 4000M
+    ...
+    ; Maximum allowed size for uploaded files.
+    upload_max_filesize = 4096M
+    ...
+</pre>
+	<li> Change group permissions in the omnispect directory:
+<pre>
+    &gt; chgrp -R apache /var/www/html/omnispect
+</pre>
+	<li> Edit the omnispect.php file to point to your installation of Matlab:
+<pre>
+    ...
+     $matlab_path="/opt/Matlab2012a/bin/matlab";
+    ...
+</pre>
+	<li> Edit the <BASE href=""> tag if you want the relative links to your server.
+	<li> If the upload directory already exists make sure apache can create and modify the contents:
+<pre>
+    &gt;  chmod g+rwx /var/www/html/omnispect/upload
+</pre>
+	<li> If the script terminates prematurely, you may need to edit the following lines in omniSpect.php:
+<pre>
+    ...
+        ini_set("memory_limit","7168M"); // 7 GB
+        ini_set("default_socket_timeout","14400"); // 4 hours
+        ini_set("max_execution_time","14400"); // 4 hours
+
+    ...
+</pre>
+	<li> If you get a "java.lang.OutOfMemoryError: Java heap space" error from Matlab, you can increase the Java Heap Memory in Matlab by following the directions <a href="http://www.mathworks.com/support/solutions/en/data/1-18I2C/">here</a>.  Currently, we put the following line in a newly created text file named 'java.opts' in the $MATLABROOT/bin/$ARCH directory: -Xmx1024m
+	<li> In order to convert XCalibur RAW files with enough time precision to interpolate image files, we modify the <pre>msconvert.exe</pre> utility in the publicly available <a href="http://proteowizard.sourceforge.net/downloads.shtml">Proteome Wizard</a> source code.  The problem with the original code is that the timestamp for each spectra has a fixed number of significant digits.  When the time exceeds 100 seconds, you lose a digit right of the decimal.  To avoid this, we force the precision to thousands of a second.  We provide the pre-built executable and requisite DLL file in the omnispect download.  However, if you want to build the modified utility you need only change one line in <pre>pwiz/data/msdata/Serializer_mzXML.cpp</pre> from:
+<pre>
+87 	string getRetentionTime(const Scan&amber; scan)
+88 	{
+89 	    ostringstream oss;
+90 	    <FONT COLOR="FF0000">oss &lt;&lt; "PT" &lt;&lt; scan.cvParam(MS_scan_start_time).timeInSeconds() &lt;&lt; "S"; </FONT>
+91 	    return oss.str();
+92 	}
+</pre>
+to:
+<pre>
+87 	string getRetentionTime(const Scan&amber; scan)
+88 	{
+89 	    ostringstream oss;
+90 	    <FONT COLOR="0000FF">oss &lt;&lt; "PT" &lt;&lt; setiosflags(ios::fixed) &lt;&lt; setprecision(3) &lt;&lt; scan.cvParam(MS_scan_start_time).timeInSeconds() &lt;&lt; "S";</FONT>
+91 	    return oss.str();
+92 	}
+</pre>
+	<li> Conversion of XCalibur RAW files requires a windows 32-bit DLL from XCalibur.  In order to convert these files, we send RAW files to another server running win32.  The windows 32-bit server hosts the raw2mzxml.php script along with msconvert.exe and  MSFileReader.XRawfile2.dll.  Similar changes to the Apache and PHP configuration files need to be made. 
+
+	</ul>
+</div></tr>
+</TABLE>
+

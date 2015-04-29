@@ -1,9 +1,9 @@
-function [img,imgX,imgY,imgZ]=makeImageCube(mat_file,pos_file,time_file,cube_file,time_offset)
-% makeImageCube generates an image cube from time-series mass spectra following a predefined 
+function [img,imgX,imgY,imgZ]=makeImageCube(mat_file,pos_file,time_file,cube_file,sigma,time_offset)
+% makeImageCube generates an image cube from time-series mass spectra following a predefined
 %    sprayer path.
 %
 %    makeImageCube(mat_file,pos_file,time_file,cube_file,time_offset) generatess
-%    the (x,y,m/z) image cube from time-series spectra in 'mat_file' and stage position 
+%    the (x,y,m/z) image cube from time-series spectra in 'mat_file' and stage position
 %    and timing information in 'pos_file' and 'time_file'.  'cube_file' contains the path
 %    to the output MAT file, and the optional 'time_offset' adjusts for a delay between
 %    mass spectrometer start and the stage starting.
@@ -12,10 +12,12 @@ function [img,imgX,imgY,imgZ]=makeImageCube(mat_file,pos_file,time_file,cube_fil
 %    'pos_file' contains the path to the stage position information file
 %    'time_file' contains the path to the stage timing information file
 %    'cube_file' contains the path to the custom Matlab cube file
-%    'time_offset' contains an optional time offset in milliseconds 
+%    'sigma' provides the standard deviation of the Gaussian window at 
+%            m/z 850.
+%    'time_offset' contains an optional time offset in milliseconds
 %    between the stage start and mass spectrometer start.
 %
-%    'img' contains the resulting image cube (y,x,m/z);
+%    'img' contains the resulting image cube ((y,x),m/z);
 %    'imgX' contains a vector of x-coordinates the same size as size(img,2)
 %    'imgY' contains a vector of y-coordinates the same size as size(img,1)
 %    'imgZ' contains a vector of m/z-values the same size as size(img,3)
@@ -24,139 +26,146 @@ function [img,imgX,imgY,imgZ]=makeImageCube(mat_file,pos_file,time_file,cube_fil
 %    $Revision: 1.00 $
 %
 
+% default sigma
+if nargin<5 || isempty(sigma),
+    disp('using default sigma of m/z 0.1 at m/z 850');
+    sigma = 0.1; % sigma = m/z 0.1 at m/z 850
+end
 % default time_offset
-if nargin<5 || isempty(time_offset), 
-	time_offset=0; 
+if nargin<6 || isempty(time_offset),
+    time_offset=0;
 end;
 
 % if the cube_file doesn't exist, create it.
 if ~exist(cube_file,'file'),
-	disp('make image cube');
-	% load the time-series mass spectrometer data
-	load(mat_file);
-	scantimes=out.scan.retentionTime;
-	if iscell(out.scan.intensity)
-		% If the data are centroided, convert them into a full data vector form.
-disp('Centroided data!');
-		% find the full range of reported m/z values
-		minMZ=inf; maxMZ=0;
-		disp('find min and max m/z');
-		for i=1:length(out.scan.mz)
-			minMZ=min([minMZ; out.scan.mz{i}(:)]);
-			maxMZ=max([maxMZ; out.scan.mz{i}(:)]);
-		end;
-
-		% generate vector of inferred m/z values with logarithmic spacing where the factor between
-		% adjacent m/z is selected to be (N+1)/N
-		%N=17000;
-                N=90000;
-		len=ceil((log(maxMZ)-log(minMZ))/(log(N+1)-log(N)));
-		imgZ=minMZ.*((N+1)/N).^(0:len)';
-		disp(['imgZ: [min, max, N] = [' num2str(min(imgZ)) ',' num2str(max(imgZ)) ',' num2str(length(imgZ)) ']'])
-
-		% place peaks in the nearest m/z bin.
-		disp('inserting peaks into profile');
-		intensities=sparse(length(imgZ),length(out.scan.intensity), 10000000);
-		%intensities=zeros(length(imgZ),length(out.scan.intensity),'single');
-		tic;
-                fprintf('%5.1f%% in %6.1f seconds', 0, toc);
-                b = repmat(char(8), 1, 24);
-		total_peaks = sum(cellfun(@numel, out.scan.intensity));
-		ii = nan(total_peaks,1);
-		jj = nan(total_peaks,1);
-		ss = nan(total_peaks,1);
-		mm = length(imgZ);
-		nn = length(out.scan.intensity);
-		k=0;
-		for i=1:length(out.scan.intensity),
-                	if mod(i,10) == 0,
-				fprintf('%s%5.1f%% in %6.1f seconds', b, 100 * (i-1) / length(out.scan.intensity), toc);
-			end
-			idx=round(log(out.scan.mz{i}/minMZ)/log((N+1)/N))+1;
-			%intensities(idx,i)=out.scan.intensity{i};
-			index = k+1:k+length(idx);
-			ii(index) = idx;
-			jj(index) = i;
-			ss(index) = out.scan.intensity{i};
-			k = k + length(idx);
-		end;
-
-		intensities = sparse(ii, jj, ss, mm, nn);
-		clear ii jj ss
-                fprintf('%s%5.1f%% in %6.1f seconds\n', b, 100, toc);
-
-		%disp(['bins with at least on peak: ' num2str(sum(any(intensities~=0,2)))]);
-		fprintf('%d / %d = %f%% entries are nonzero.\n', nnz(intensities), prod(size(intensities)), 100 * nnz(intensities) / prod(size(intensities)))
-
-		% smooth peaks with a Gaussian to spread them across multiple m/z bins.
-		% convolve with Guassian
-		disp('smoothing peaks with Gaussian window');
-		m=3;
-		% zero-pad
-		disp('zero pad')
-		tic;
-		intensities=[intensities;zeros(m-1,size(intensities,2))];
-		toc;
-		imgZ=minMZ.*((N+1)/N).^(-(m-1)/2:len+(m-1)/2)';
-		% convolve
-		h=window(@gausswin,m); h=h/sum(h);
-		%intensities=filter(h,1,intensities)';
-		tic;
-		ii = nan(total_peaks*m,1);
-		jj = nan(total_peaks*m,1);
-		ss = nan(total_peaks*m,1);
-                fprintf('%5.1f%% in %6.1f seconds', 0, toc);
-                b = repmat(char(8), 1, 24);
-		k = 0;
-		for i=1:size(intensities,2),
-                	if mod(i,10) == 0,
-				fprintf('%s%5.1f%% in %6.1f seconds', b, 100 * (i-1) / length(out.scan.intensity), toc);
-			end
-			a = filter(h,1,full(intensities(:,i)));
-			idx = a > 0;
-			num = sum(idx);
-			% intensities(idx, i) = a(idx);
-			index = k+1:k+num;
-			ii(index) = find(idx);
-			jj(index) = i;
-			ss(index) = a(idx);
-			k = k + num;
-		end
-		idx = find(~isnan(ii), 1, 'last');
-		ii(idx+1:end) = [];
-		jj(idx+1:end) = [];
-		ss(idx+1:end) = [];
-		intensities = sparse(jj, ii, ss, nn, mm + m - 1);
-		clear ii jj ss
-		fprintf('%d / %d = %f%% entries are nonzero.\n', nnz(intensities), prod(size(intensities)), 100 * nnz(intensities) / prod(size(intensities)))
-                fprintf('%s%5.1f%% in %6.1f seconds\n', b, 100, toc);
-	else
-		% If the mass spectra are not centroided, just load them in.
-		intensities=single(out.scan.intensity');
-		imgZ=out.scan.mz;
-	end
-
-	clear out;
-
-	% find the (scanx,scany) positions of each scan
-	[scanx,scany,ylines]=getScanPositions(scantimes,pos_file,time_file,time_offset);
-	% find which ones are during a left-to-right or right-to-left motion.
-	[L,R]=getScansLR(scanx,scany);
-	
-	% check to see which x-direction is scanned first (left or right).
-	i=2; while(scanx(i)==scanx(i-1)), i=i+1; end;
-	if scanx(i)>scanx(i-1), % right
-		D=~L; 
-	else % left
-		D=~R; 
-	end;
-
-	% create the image using only the first pass over the sample (not the return pass)
-	[img,imgX,imgY]=makeImage(scanx(D),scany(D),intensities(D,:),ylines);
-
-	save(cube_file,'img','imgX','imgY','imgZ','-v7.3');
+    disp('make image cube');
+    % load the time-series mass spectrometer data
+    load(mat_file);
+    scantimes=out.scan.retentionTime;
+    if iscell(out.scan.intensity)
+        targetMZ = 850;
+        N = targetMZ / sigma * 2;
+        window_width = 11;
+        
+        target = mat_file(1:end-4);
+        % If the data are centroided, convert them into a full data vector form.
+        disp('Centroided data!');
+        % find the full range of reported m/z values
+        minMZ=inf; maxMZ=0;
+        disp('find min and max m/z');
+        for i=1:length(out.scan.mz)
+            minMZ=min([minMZ; out.scan.mz{i}(:)]);
+            maxMZ=max([maxMZ; out.scan.mz{i}(:)]);
+        end;
+        
+        % generate vector of inferred m/z values with logarithmic spacing where the factor between
+        % adjacent m/z is selected to be (N+1)/N
+        len=ceil((log(maxMZ)-log(minMZ))/(log(N+1)-log(N)));
+        imgZ=minMZ.*((N+1)/N).^(0:len)';
+        disp(['imgZ: [min, max, N] = [' num2str(min(imgZ)) ',' num2str(max(imgZ)) ',' num2str(length(imgZ)) ']'])
+        
+        % place peaks in the nearest m/z bin.
+        disp('inserting peaks into profile');
+        intensities=sparse(length(imgZ),length(out.scan.intensity), 10000000);
+        %intensities=zeros(length(imgZ),length(out.scan.intensity),'single');
+        tic;
+        fprintf('%5.1f%% in %6.1f seconds', 0, toc);
+        b = repmat(char(8), 1, 24);
+        total_peaks = sum(cellfun(@numel, out.scan.intensity));
+        ii = nan(total_peaks,1);
+        jj = nan(total_peaks,1);
+        ss = nan(total_peaks,1);
+        mm = length(imgZ);
+        nn = length(out.scan.intensity);
+        k=0;
+        for i=1:length(out.scan.intensity),
+            if mod(i,10) == 0,
+                fprintf('%s%5.1f%% in %6.1f seconds', b, 100 * (i-1) / length(out.scan.intensity), toc);
+            end
+            idx=round(log(out.scan.mz{i}/minMZ)/log((N+1)/N))+1;
+            %intensities(idx,i)=out.scan.intensity{i};
+            index = k+1:k+length(idx);
+            ii(index) = idx;
+            jj(index) = i;
+            ss(index) = out.scan.intensity{i};
+            k = k + length(idx);
+        end;
+        
+        intensities = sparse(ii, jj, ss, mm, nn);
+        clear ii jj ss
+        fprintf('%s%5.1f%% in %6.1f seconds\n', b, 100, toc);
+        
+        %disp(['bins with at least on peak: ' num2str(sum(any(intensities~=0,2)))]);
+        fprintf('%d / %d = %f%% entries are nonzero.\n', nnz(intensities), prod(size(intensities)), 100 * nnz(intensities) / prod(size(intensities)))
+        
+        % smooth peaks with a Gaussian to spread them across multiple m/z bins.
+        % convolve with Guassian
+        disp('smoothing peaks with Gaussian window');
+        % zero-pad
+        disp('zero pad')
+        tic;
+        intensities=[intensities;zeros(window_width-1,size(intensities,2))];
+        toc;
+        imgZ=minMZ.*((N+1)/N).^(-(window_width-1)/2:len+(window_width-1)/2)';
+        % convolve
+        h=window(@gausswin,window_width); h=h/sum(h);
+        %intensities=filter(h,1,intensities)';
+        tic;
+        ii = nan(total_peaks*window_width,1);
+        jj = nan(total_peaks*window_width,1);
+        ss = nan(total_peaks*window_width,1);
+        fprintf('%5.1f%% in %6.1f seconds', 0, toc);
+        b = repmat(char(8), 1, 24);
+        k = 0;
+        for i=1:size(intensities,2),
+            if mod(i,10) == 0,
+                fprintf('%s%5.1f%% in %6.1f seconds', b, 100 * (i-1) / length(out.scan.intensity), toc);
+            end
+            a = filter(h,1,full(intensities(:,i)));
+            idx = a > 0;
+            num = sum(idx);
+            % intensities(idx, i) = a(idx);
+            index = k+1:k+num;
+            ii(index) = find(idx);
+            jj(index) = i;
+            ss(index) = a(idx);
+            k = k + num;
+        end
+        idx = find(~isnan(ii), 1, 'last');
+        ii(idx+1:end) = [];
+        jj(idx+1:end) = [];
+        ss(idx+1:end) = [];
+        intensities = sparse(jj, ii, ss, nn, mm + window_width - 1);
+        clear ii jj ss
+        fprintf('%s%5.1f%% in %6.1f seconds\n', b, 100, toc);
+        fprintf('%d / %d = %f%% entries are nonzero.\n', nnz(intensities), prod(size(intensities)), 100 * nnz(intensities) / prod(size(intensities)))
+    else
+        % If the mass spectra are not centroided, just load them in.
+        intensities=single(out.scan.intensity');
+        imgZ=out.scan.mz;
+    end
+    
+    clear out;
+    
+    % find the (scanx,scany) positions of each scan
+    [scanx,scany,ylines]=getScanPositions(scantimes,pos_file,time_file,time_offset);
+    % find which ones are during a left-to-right or right-to-left motion.
+    [L,R]=getScansLR(scanx,scany);
+    
+    % check to see which x-direction is scanned first (left or right).
+    i=2; while(scanx(i)==scanx(i-1)), i=i+1; end;
+    if scanx(i)>scanx(i-1), % right
+        D=~L;
+    else % left
+        D=~R;
+    end;
+    
+    % create the image using only the first pass over the sample (not the return pass)
+    [img,imgX,imgY]=makeImage(scanx(D),scany(D),intensities(D,:),ylines);
+    
+    save(cube_file,'img','imgX','imgY','imgZ','-v7.3');
 else
-	load(cube_file);
+    load(cube_file);
 end;
 
 function [img,X,Y]=makeImage(x,y,intensity,ylines,Xsize)
@@ -165,13 +174,13 @@ function [img,X,Y]=makeImage(x,y,intensity,ylines,Xsize)
 %    makeImage(x,y,intensity,ylines,Xsize) generatess an image cube from mass spectra
 %    collected at a series of (x,y) positions.
 %
-%    'x' contains a vector of x-positions (M x 1) for the time-series mass spectra 
-%    'y' contains a vector of y-positions (M x 1) for the time-series mass spectra 
+%    'x' contains a vector of x-positions (M x 1) for the time-series mass spectra
+%    'y' contains a vector of y-positions (M x 1) for the time-series mass spectra
 %    'intensity' contains a matrix (M x N) of M scans and N m/z bins per scan.
 %    'ylines' contains the unique y-positions for each line of the stage path.
 %    'Xsize' contains the optional width of a pixel in micrometers.
 %
-%    'img' contains the resulting image cube (y,x,m/z);
+%    'img' contains the resulting image cube ((y,x),m/z);
 %    'X' contains a vector of x-coordinates the same size as size(img,2)
 %    'Y' contains a vector of y-coordinates the same size as size(img,1)
 %
@@ -198,26 +207,48 @@ else
     scansPerLine = floor((max(x)-min(x))/Xsize) + 1;
 end;
 
-% For each line of the image, linearly interpolate the ion intensitites between scans to 
+% For each line of the image, linearly interpolate the ion intensitites between scans to
 % fill in the image.
 X=min(x):Xsize:max(x);
 Y=ylines;
 if issparse(intensity),
     tic;
-    fprintf('%5.1f%% in %6.1f seconds', 0, toc);
     b = repmat(char(8), 1, 24);
-
+    
     img = cell(nlines,length(X));
+    num_nonzero = nnz(intensity);
+    buffer_size = num_nonzero * 4;
+    fprintf('number of nonzeros: %d\n', num_nonzero);
+    fprintf('buffer size: %d\n', buffer_size);
+    
+    
+    ii = nan(buffer_size, 1);
+    jj = nan(buffer_size, 1);
+    ss = nan(buffer_size, 1);
+    k=0;
+    fprintf('%5.1f%% in %6.1f seconds', 0, toc);
     for i=1:nlines,
         fprintf('%s%5.1f%% in %6.1f seconds', b, 100 * (i-1) / nlines, toc);
         j=y==ylines(i) & x>min(x)+1 & x<max(x)-1;
         nz = any(intensity(j,:)>0);
         a = zeros(length(X), nmasses);
         a(:,nz)=interp1(x(j),full(intensity(j,nz)),X,'linear',0);
-        for k=1:length(X),
-            img{i,k} = sparse(a(k,:)');
-        end
+        [I,J,V] = find(a);
+        num = length(I);
+        index = k+1:k+num;
+        ii(index) = (I-1)*nlines + i;
+        jj(index) = J;
+        ss(index) = V;
+        k = k + num;
     end
+    idx = find(~isnan(ii),1,'last');
+    if idx > buffer_size,
+        warning(sprintf('number of nonzeros in image (%d) exceed buffer_size (%d)', idx, buffer_size));
+    end;
+    ii(idx+1:end)=[];
+    jj(idx+1:end)=[];
+    ss(idx+1:end)=[];
+    img = sparse(ii,jj,ss,nlines*scansPerLine, nmasses);
     fprintf('%s%5.1f%% in %6.1f seconds\n', b, 100, toc);
 else,
     img=zeros(nlines,scansPerLine,nmasses);
@@ -225,10 +256,12 @@ else,
         j=y==ylines(i) & x>min(x)+1 & x<max(x)-1;
         img(i,:,:)=interp1(x(j),intensity(j,:),X,'linear',0);
     end;
+    % flatten cube into matrix
+    img = reshape(img, nlines*scansPerLine, nmasses);
 end
 
 function [scanx,scany,ylines]=getScanPositions(scan_times,pos_file,time_file,time_offset)
-% getScanPositions estimates x- and y-coordinates for scans collected at different times 
+% getScanPositions estimates x- and y-coordinates for scans collected at different times
 % along a predetermined path.
 %
 %    getScanPositions(scan_times,pos_file,time_file,time_offset)
@@ -238,7 +271,7 @@ function [scanx,scany,ylines]=getScanPositions(scan_times,pos_file,time_file,tim
 %    'scan_times' contains a vector of times in seconds since the mass spectrometer started
 %    'pos_file' contains the path to a text file containing position information for the acquisition path
 %    'time_file' contains the path to a text file containing timing information for the acquisiton path
-%    'time_offset' provides an optionsl time offset between when the mass spectrometer starts and the 
+%    'time_offset' provides an optionsl time offset between when the mass spectrometer starts and the
 %     stage begins to move.
 %
 %    'pos_file' contains the positions of the stage following a 'comb' shaped pattern.  Each line contains
@@ -246,8 +279,8 @@ function [scanx,scany,ylines]=getScanPositions(scan_times,pos_file,time_file,tim
 %
 %        y_i	x_i	y_i+1	x_i+1	y_i+2	x_i+2
 %
-%    containing the x- and y-coordinates in micrometers following the pattern.  The y-coordinates for each row 
-%    do not change such that y_i = y_i+1 = y_i+2, and x_i = x_i+2 represent the left most position and x_i+1 
+%    containing the x- and y-coordinates in micrometers following the pattern.  The y-coordinates for each row
+%    do not change such that y_i = y_i+1 = y_i+2, and x_i = x_i+2 represent the left most position and x_i+1
 %    represents the right most position.  An excerpt from a sample position file might look like the following:
 %
 %        6713.840	62190.250	6713.840	53190.250	6713.840	62191.250
@@ -258,8 +291,8 @@ function [scanx,scany,ylines]=getScanPositions(scan_times,pos_file,time_file,tim
 %
 %        t_i	t_i+1	t_i+2
 %
-%    containing the time in milliseconds it took the stage to move from the previous position to the current 
-%    position.  For example, t_i contains the time it took to move from (x_i-1,y_i-1) to (x_i,y_i).  An 
+%    containing the time in milliseconds it took the stage to move from the previous position to the current
+%    position.  For example, t_i contains the time it took to move from (x_i-1,y_i-1) to (x_i,y_i).  An
 %    excerpt from an sample time file might look like the following:
 %
 %        1512.000	60193.000	60206.000

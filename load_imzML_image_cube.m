@@ -1,8 +1,10 @@
 function load_imzML_image_cube(imzML_file, ibd_file, mat_file, cube_file, image_file)
 imzMLtoCube(imzML_file, ibd_file, cube_file);
 makeRawImage(cube_file,image_file);
+
 function imzMLtoCube(imzML_file, ibd_file, cube_file)
 [img, imgX, imgY, imgZ] = readImzML(imzML_file, ibd_file);
+img = reshape(img, length(imgY)*length(imgX), length(imgZ));
 save(cube_file,'img','imgX','imgY','imgZ','-v7.3');
 
 function [ img, imgX, imgY, imgZ ] = readImzML( imzML_file, ibd_file, continuousOptimization)

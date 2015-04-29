@@ -22,16 +22,16 @@ function varargout = omnispect(varargin)
 
 % Edit the above text to modify the response to help omnispect
 
-% Last Modified by GUIDE v2.5 15-Oct-2012 11:40:03
+% Last Modified by GUIDE v2.5 20-Apr-2015 12:36:20
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
 gui_State = struct('gui_Name',       mfilename, ...
-                   'gui_Singleton',  gui_Singleton, ...
-                   'gui_OpeningFcn', @omnispect_OpeningFcn, ...
-                   'gui_OutputFcn',  @omnispect_OutputFcn, ...
-                   'gui_LayoutFcn',  [] , ...
-                   'gui_Callback',   []);
+    'gui_Singleton',  gui_Singleton, ...
+    'gui_OpeningFcn', @omnispect_OpeningFcn, ...
+    'gui_OutputFcn',  @omnispect_OutputFcn, ...
+    'gui_LayoutFcn',  [] , ...
+    'gui_Callback',   []);
 if nargin && ischar(varargin{1})
     gui_State.gui_Callback = str2func(varargin{1});
 end
@@ -78,7 +78,7 @@ guidata(handles.figure1, handles);
 
 
 % --- Outputs from this function are returned to the command line.
-function varargout = omnispect_OutputFcn(hObject, eventdata, handles) 
+function varargout = omnispect_OutputFcn(hObject, eventdata, handles)
 % varargout  cell array for returning output args (see VARARGOUT);
 % hObject    handle to figure
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -229,7 +229,7 @@ set(handles.edit_File3,'String',[pathname filename]);
 
 % --- Executes when selected object is changed in formatgroup.
 function formatgroup_SelectionChangeFcn(hObject, eventdata, handles)
-% hObject    handle to the selected object in formatgroup 
+% hObject    handle to the selected object in formatgroup
 % eventdata  structure with the following fields (see UIBUTTONGROUP)
 %	EventName: string 'SelectionChanged' (read only)
 %	OldValue: handle of the previously selected object or empty if none was selected
@@ -243,15 +243,15 @@ switch get(eventdata.NewValue,'Tag')
     case 'radio_mzXML'
         set(handles.edit_File1,'String','Enter mzXML file.');
         set(handles.edit_File2,'String','Enter time file.');
-        set(handles.edit_File3,'String','Enter position file.');        
+        set(handles.edit_File3,'String','Enter position file.');
     case 'radio_Analyze75'
         set(handles.edit_File1,'String','Enter HDR file.');
         set(handles.edit_File2,'String','Enter IMG file.');
-        set(handles.edit_File3,'String','Enter T2M file.');        
+        set(handles.edit_File3,'String','Enter T2M file.');
     case 'radio_imzML'
         set(handles.edit_File1,'String','Enter imzML file.');
         set(handles.edit_File2,'String','Enter IBD file.');
-        set(handles.edit_File3,'String','');                
+        set(handles.edit_File3,'String','');
     otherwise
 end;
 
@@ -400,7 +400,7 @@ function pushbutton_ion_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 for i=1:length(handles.figs),
     try
-        close(handles.figs(i)); 
+        close(handles.figs(i));
     catch
     end;
 end;
@@ -415,24 +415,26 @@ pm1=sscanf(get(handles.edit_pm1,'String'),'%f');
 pm2=sscanf(get(handles.edit_pm2,'String'),'%f');
 pm3=sscanf(get(handles.edit_pm3,'String'),'%f');
 target=handles.target;
-cube_file = [target '_cube.mat'];
+cube_file = handles.cube_file;
+disp(['ion callback cube_file = ' cube_file]);
 wh=msgbox('Please wait for ion visualization...','modal');
 mz=[mz1,mz2,mz3];
 pm=[pm1,pm2,pm3];
 fig_files={};
 for i=1:3,
-	if mz(i)>=0,
-		fig_files{end+1} = sprintf('%s_mz%08.1f_pm%05.1f',target,mz(i),pm(i));
-	end;
+    if mz(i)>=0,
+        fig_files{end+1} = sprintf('%s_mz%08.1f_pm%05.1f',target,mz(i),pm(i));
+    end;
 end;
 sum_image = sprintf('%s_mz%08.1f-%08.1f-%08.1f-_pm%05.1f-%05.1f-%05.1f-_sum',...
-			target,mz(1),mz(2),mz(3),pm(1),pm(2),pm(3));
+    target,mz(1),mz(2),mz(3),pm(1),pm(2),pm(3));
 composite_image = sprintf('%s_mz%08.1f-%08.1f-%08.1f-_pm%05.1f-%05.1f-%05.1f-_sum',...
-			target,mz(1),mz(2),mz(3),pm(1),pm(2),pm(3));
+    target,mz(1),mz(2),mz(3),pm(1),pm(2),pm(3));
 
 h=analyze_Individual(cube_file,[mz1,mz2,mz3],[pm1,pm2,pm3],fig_files,sum_image,composite_image);
 try close(wh); end;
 handles.figs=h;
+handles.cube_file = cube_file;
 guidata(handles.figure1,handles);
 
 function edit_nmf_Callback(hObject, eventdata, handles)
@@ -463,22 +465,17 @@ function pushbutton_nmf_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 for i=1:length(handles.figs),
     try
-        close(handles.figs(i)); 
+        close(handles.figs(i));
     end;
 end;
 handles.figs=[]; guidata(handles.figure1,handles);
 handles=loadData(handles);
 target=handles.target;
-cube_file=[target '_cube.mat'];
+cube_file=handles.cube_file;
 noc=str2num(get(handles.edit_nmf,'String'));
-k=1;
-for i=1:noc, 
-	fig_files{k} = sprintf('%s_nmf%d-%d_img',target,noc,i); k=k+1;
-	fig_files{k} = sprintf('%s_nmf%d-%d_spec',target,noc,i); k=k+1;
-end;
 
 wh=msgbox('Please wait for NMF...','modal');
-h=analyze_NMF(cube_file,noc,fig_files);
+h=analyze_NMF(cube_file,noc);
 try close(wh); end;
 handles.figs=h;
 guidata(handles.figure1,handles);
@@ -495,11 +492,11 @@ function uipanel1_DeleteFcn(hObject, eventdata, handles)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    structure with handles and user data (see GUIDATA)
 if numel(handles)>0,
-for i=1:length(handles.figs),
-    try
-        close(handles.figs(i)); 
+    for i=1:length(handles.figs),
+        try
+            close(handles.figs(i));
+        end;
     end;
-end;
 end;
 function handles=loadData(handles)
 steps=1;
@@ -511,18 +508,19 @@ switch get(get(handles.formatgroup,'SelectedObject'),'Tag'),
         posfile=get(handles.edit_File3,'String');
         target=cdffile(1:end-4);
         matfile=[target '.mat'];
-        cubefile=[target '_cube.mat'];
+        sigma=handles.sigma;
+        cube_file=[target '_sd' num2str(sigma) '_cube.mat'];
         steps=3;
         step=0;
         waitbar(step/steps,h,'Converting CDF to MAT','Name','Load Data...');
-            
+        
         if ~exist(matfile,'file'),
             cdf2mat(cdffile,matfile);
         end;
         step=step+1;
         waitbar(step/steps,h,'Converting MAT to Cube','Name','Load Data...');
-        if ~exist(cubefile,'file')
-            makeImageCube(target,posfile,timefile,cubefile);
+        if ~exist(cube_file,'file')
+            makeImageCube(target,posfile,timefile,cube_file,sigma);
         end;
     case 'radio_mzXML'
         xmlfile=get(handles.edit_File1,'String');
@@ -530,8 +528,9 @@ switch get(get(handles.formatgroup,'SelectedObject'),'Tag'),
         posfile=get(handles.edit_File3,'String');
         target=xmlfile(1:end-6);
         matfile=[target '.mat'];
-        cubefile=[target '_cube.mat'];
-
+        sigma=handles.sigma;
+        cube_file=[target '_sd' num2str(sigma) '_cube.mat'];
+        
         steps=3;
         step=0;
         waitbar(step/steps,h,'Converting mzXML to MAT','Name','Load Data...');
@@ -541,16 +540,16 @@ switch get(get(handles.formatgroup,'SelectedObject'),'Tag'),
         end;
         step=step+1;
         waitbar(step/steps,h,'Converting MAT to Cube','Name','Load Data...');
-        if ~exist(cubefile,'file')
-            makeImageCube(target,posfile,timefile,cubefile);
+        if ~exist(cube_file,'file')
+            makeImageCube(target,posfile,timefile,cube_file,sigma);
         end;
     case 'radio_Analyze75'
-	hdr_file=get(handles.edit_File1,'String');
-	img_file=get(handles.edit_File2,'String');
+        hdr_file=get(handles.edit_File1,'String');
+        img_file=get(handles.edit_File2,'String');
         t2m_file=get(handles.edit_File3,'String');
         target=t2m_file(1:end-4);
         cube_file=[target '_cube.mat'];
-	rawimage_file = [target '_rawimage.png'];
+        rawimage_file = [target '_rawimage.png'];
         steps=2;
         step=0;
         waitbar(step/steps,h,'Converting Analyze 7.5 to Cube','Name','Load Data...');
@@ -562,7 +561,7 @@ switch get(get(handles.formatgroup,'SelectedObject'),'Tag'),
         ibd_file=get(handles.edit_File2,'String');
         target=imzML_file(1:end-6);
         cube_file=[target '_cube.mat'];
-	rawimage_file = [target '_rawimage.png'];
+        rawimage_file = [target '_rawimage.png'];
         steps=2;
         step=0;
         waitbar(step/steps,h,'Converting imzML to Cube','Name','Load Data...');
@@ -570,12 +569,12 @@ switch get(get(handles.formatgroup,'SelectedObject'),'Tag'),
             load_imzML_image_cube(imzML_file,ibd_file,[],cube_file,rawimage_file);
         end;
     otherwise
+        error('unknown data type');
 end;
 step=step+1;
 waitbar(step/steps,h,'Generating Raw Image (PNG)','Name','Load Data...');
-rawimagefile=[target '_rawimage.png'];
+rawimagefile=[target '_sd' num2str(sigma) '_rawimage.png'];
 if ~exist(rawimagefile,'file'),
-    cube_file = [target '_cube.mat'];
     makeRawImage(cube_file,rawimagefile);
 end;
 step=step+1;
@@ -583,6 +582,8 @@ waitbar(step/steps,h,'Done!','Name','Load Data...');
 pause(0.5);
 close(h);
 handles.target = target;
+handles.cube_file = cube_file;
+disp(['handles.cube_file = ' cube_file]);
 guidata(handles.figure1, handles);
 disp('Data loaded');
 
@@ -634,3 +635,41 @@ for i=84:length(d),
         handles=guidata(handles.figure1);
     end;
 end;
+
+
+% --- Executes on selection change in popupmenu1.
+function popupmenu1_Callback(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: contents = cellstr(get(hObject,'String')) returns popupmenu1 contents as cell array
+%        contents{get(hObject,'Value')} returns selected item from popupmenu1
+targetMZ = 850;
+val = get(hObject,'Value');
+str = get(hObject,'String');
+sigma = str2double(str(val));
+handles = guidata(hObject);
+handles.sigma = sigma;
+guidata(hObject,handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function popupmenu1_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to popupmenu1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: popupmenu controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
+targetMZ = 850;
+val = get(hObject,'Value');
+str = get(hObject,'String');
+sigma = str2double(str(val));
+handles = guidata(hObject);
+handles.sigma = sigma;
+guidata(hObject,handles);
+

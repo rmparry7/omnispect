@@ -59,7 +59,9 @@ end;
 % read scans for this file
 disp('Reading scans');
 load(cube_file);
+img=reshape(img, length(imgY)*length(imgX), length(imgZ);
 X=img; clear img;
+
 
 h=[];
 disp('do masses');
@@ -71,20 +73,19 @@ for i=1:nmasses,
         mxmass=masses(i)+ranges(i);
         mnmass=masses(i)-ranges(i);
         idx=imgZ>=mnmass & imgZ<=mxmass;
-        img(:,:,i)=sum(X(:,:,idx),3);
+        img(:,i)=sum(X(:,idx),2);
         kmasses(i)=true;
     elseif total_done==1,
         kmasses(i)=false;
         continue;
     else
-        img(:,:,i)=sum(X,3); % total ion count
+        img(:,i)=sum(X,2); % total ion count
         total_done=1;
         kmasses(i)=true;
     end;
-
     % make figure.
     h(end+1)=figure;
-    imagesc(imgX,imgY,img(:,:,i));
+    imagesc(imgX,imgY,reshape(img(:,i),length(imgY), length(imgX)));
     axis xy equal;
     [pathstr, fname]=fileparts(target);
     if masses(i)<=0,
@@ -106,7 +107,9 @@ for i=1:nmasses,
         print('-dpng','-r300',[figname '.png']);
     end;
 end;
-
+if ndims(img) > 2,
+    img = reshape(img, length(imgY), length(imgX), nmasses);
+end
 % handle bad masses
 masses=masses(kmasses);
 ranges=ranges(kmasses);

@@ -1,3 +1,7 @@
+If you use this for research, please cite the following paper:
+http://doi.org/10.1007/s13361-012-0572-y
+
+
 README file for running omniSpect GUI in Matlab:
 
 from the Matlab command line: 

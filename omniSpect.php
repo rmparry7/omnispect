@@ -506,22 +506,13 @@
 </TABLE>
 <TABLE border=0 cellpadding=5>
 <tr><td colspan=1 valign="top" align="left"><div style="width: 808px">
-This is the demonstration version of the web interface of omniSpect.  <br>
-<br>
-The following files are available for download:<br>
-<br>
-<a href="./download.php?file=omniSpect_20120716.zip">Source code</a>: Matlab and PHP scripts to run omniSpect as a Matlab GUI or web interface.<br>
-<a href="./download.php?file=LabViewVIs.zip">LabView scripts</a> to control the acquisition stage. <br>
-<a href="./install.html">Installation guide</a><br>
-<a href="./download.php?file=example_data.zip">Example data</a>
-<!--
-<br><br>
-If you use omniSpect, please cite the following publication in your paper:
-<br><br>
-[1] Parry RM, Galhena AS, Fernandez FM, Wang MD. Deblurring molecular images using desorption electrospray ionization mass spectrometry.  IEEE International Conference of the Engineering in Medicine and Biology Society; 2009. p. 6731-4.
-<br><br>
--->
+<H3>Source code</H3>
+<a href="http://github.com/rmparry7/omnispect">http://github.com/rmparry7/omnispect</a>.<br>
 
+<H3>Publication:</H3>
+<b><a href="http://doi.org/10.1007/s13361-012-0572-y">OmniSpect: An Open MATLAB-Based Tool for Visualization and Analysis of Matrix-Assisted Laser Desorption/Ionization and Desorption Electrospray Ionization Mass Spectrometry Images</a></b><br />
+Parry RM, Galhena AS, Gamage CM, Bennett RV, Wang MD, Fernandez FM.<br />
+<i>Journal of The American Society for Mass Spectrometry, 24(4), pp. 646-649, 2012.</i><br />
 </div></td></tr>
 </TABLE>
 </BODY>

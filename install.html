@@ -41,6 +41,10 @@
     ...
 </pre>
         <li> Be sure to restart httpd after making these changes, e.g., &gt; service httpd restart
+	<li> Create an 'upload' directory if it doesn't already exist and make sure apache can create and modify the contents:
+<pre>
+    &gt;  chmod g+rwx /var/www/html/omnispect/upload
+</pre>
 	<li> Change group permissions in the omnispect directory:
 <pre>
     &gt; chgrp -R apache /var/www/html/omnispect
@@ -51,11 +55,7 @@
      $matlab_path="/opt/Matlab2012a/bin/matlab";
     ...
 </pre>
-	<li> Edit the <BASE href=""> tag if you want the relative links to your server.
-	<li> If the upload directory already exists make sure apache can create and modify the contents:
-<pre>
-    &gt;  chmod g+rwx /var/www/html/omnispect/upload
-</pre>
+	<li> Edit the &lt;BASE href=""&gt; tag if you want the relative links to your server.
 	<li> If the script terminates prematurely, you may need to edit the following lines in omniSpect.php:
 <pre>
     ...

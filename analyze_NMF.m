@@ -42,7 +42,10 @@ if ndims(img) > 2,
     imgZ=single(imgZ(1:size(img,3)));
     img = reshape(img, length(imgY)*length(imgX), length(imgZ));
 end
-img = single(img);
+
+if ~issparse(img)
+    img = single(img);
+end
 
 size(img)
 

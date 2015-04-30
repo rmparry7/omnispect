@@ -40,6 +40,7 @@
     upload_max_filesize = 4096M
     ...
 </pre>
+        <li> Be sure to restart httpd after making these changes, e.g., &gt; service httpd restart
 	<li> Change group permissions in the omnispect directory:
 <pre>
     &gt; chgrp -R apache /var/www/html/omnispect

@@ -1,7 +1,7 @@
 <HTML>
 <HEAD>
 <TITLE>omniSpect: Multispectral Image Analysis</TITLE>
-<BASE href="http://omnispect.bme.gatech.edu">
+<BASE href="http://lateralus.cs.appstate.edu/omnispect/">
 </HEAD>
 
 <BODY>
@@ -16,15 +16,15 @@
 
 <?php
 	// put matlab path here:
-	$matlab_path="matlab";
+	$matlab_path="/usr/local/bin/matlab";
 	#$matlab_path="/opt/matlab2012a/bin/matlab";
 	$export_display = "export DISPLAY=10:0 ; "; // do this so that the apache user can open an X window for the figures.
         $matlab=$export_display.$matlab_path;
 
 	# make sure there's enough memory and processing time for PHP
-        ini_set("memory_limit","7168M"); // 2 GB
-	ini_set("default_socket_timeout","14400");
-	ini_set("max_execution_time","14400");
+        ini_set("memory_limit","7168M"); // 7 GB
+	ini_set("default_socket_timeout","14400"); // 4 hours
+	ini_set("max_execution_time","14400"); // 4 hours
 
 	# get previous analysis settings or use defaults.
 	$mz = array(1=>(!isset($_POST['mz1'])? 0:$_POST['mz1']),
@@ -155,23 +155,31 @@
 	# setup directory for data upload and log file.
 	$filedir="upload/";
 
-	# setyp analysis method descriptions
+	# setup analysis method descriptions
 	$analysis_methods=array(
 				1=>"Individual",
 				2=>"NMF"
 			);
 
+        # setup precisions
+        $precisions=array(
+                          1=>"0.1",
+                          2=>"0.01",
+                          3=>"0.001"
+                         );
+
 	# grab posted parameters from previously uploaded data
 	$analysis=(!isset($_POST['analysis'])?0:$_POST['analysis']);
 	$datatype=(!isset($_POST['datatype'])?1:$_POST['datatype']);
 	$target=(!isset($_POST['target'])?"":$_POST['target']);
+	$precision=(!isset($_POST['precision'])?1:$_POST['precision']);
 
 ?>
 
 <TABLE border=1 cellpadding=0 width=816px>
 <?php
 	if ($analysis==0){ // Default file upload page...
-		# Create a form for selecting the data type from the optinos in $datastrs
+		# Create a form for selecting the data type from the options in $datastrs
   		echo "
 			<form name=\"form_datatype\" enctype=\"multipart/form-data\" action=\".\" method=\"POST\">
 			<tr><th rowspan=1 valign=\"top\" align=\"center\">
@@ -203,7 +211,14 @@
 	        foreach($analysis_methods as $k=>$v){
         	        echo "<option value=" . $k . (($k==2)?" selected=\"selected\"":"") . ">" . $v . "</option>";
 	        }
-	        echo "\n</select>\n";
+	        echo "\n</select>\n<br />\n";
+
+		# Provide a dropdown box for the level of precision in the $precisions array.
+		echo "Precision: <select name=\"precision\">\n";
+	        foreach($precisions as $k=>$v){
+        	        echo "<option value=" . $k . (($k==1)?" selected=\"selected\"":"") . ">" . $v . "</option>";
+	        }
+	        echo "\n</select>\n<br \>\n";
 
 		# Add upload button
 		echo "
@@ -272,9 +287,10 @@
 		// Load data into matlab and create cube MAT file
 		// Output files:
 		$matfile = $target . ".mat";
-		$cubefile = $target . "_cube.mat";
-		$rawImageFile = $target . "_rawimage.png";
-		$logfile = $target . ".log";
+                $precision_target = $target . "_sd" . $precisions[$precision];
+		$cubefile = $precision_target . "_cube.mat";
+		$rawImageFile = $precision_target . "_rawimage.png";
+		$logfile = $precision_target . ".log";
 
 		if (!file_exists($rawImageFile)) {
 	
@@ -288,7 +304,7 @@
 			for ($i=2;$i<=count($target_fileExts);$i++){
 				$load_params .= ",'" . $target . "." . strtolower($target_fileExts[$i]) . "'";
 			}
-			$load_params .= ",'" . $matfile . "','" . $cubefile . "','" . $rawImageFile . "'";
+			$load_params .= ",'" . $matfile . "','" . $cubefile . "','" . $rawImageFile . "'," . $precisions[$precision];
 		
 			$out=array();
 			$cmd=$matlab.' -nodisplay -nodesktop -r "'.$load_function.'('.$load_params.'); exit;" >> ' . $logfile . ' 2>&1';
@@ -310,6 +326,7 @@
 				exit("Exiting.");
 			}
 		}
+                $target = $precision_target;
 	}
 
 	// Now that we have a 3D data cube, run the analysis

@@ -1,4 +1,4 @@
-function load_imzML_image_cube(imzML_file, ibd_file, mat_file, cube_file, image_file)
+function load_imzML_image_cube(imzML_file, ibd_file, mat_file, cube_file, image_file, precision) % precision is not used but fits the interface for other load methods.
 imzMLtoCube(imzML_file, ibd_file, cube_file);
 makeRawImage(cube_file,image_file);
 

@@ -36,17 +36,13 @@ end;
 % load 
 load(cube_file,'img','imgX','imgY','imgZ');
 if ndims(img) > 2,
-    img = reshape(img, length(imgY)*length(imgX), length(imgZ));
-end
-
-
-if ~issparse(img),
     % img is [imgY x imgX x imgZ];
     imgX=single(imgX(1:size(img,2)));
     imgY=single(imgY(1:size(img,1)));
     imgZ=single(imgZ(1:size(img,3)));
-    img = single(img);
+    img = reshape(img, length(imgY)*length(imgX), length(imgZ));
 end
+img = single(img);
 
 size(img)
 

@@ -1,4 +1,4 @@
-function load_Analyze_7_5_image_cube(t2m_file,dat_file,hdr_file,img_file, mat_file, cube_file, image_file)
+function load_Analyze_7_5_image_cube(t2m_file,dat_file,hdr_file,img_file, mat_file, cube_file, image_file, precision) % precision is not used but fits the interface for other load methods.
 [img,imgX,imgY,imgZ]=readT2M(t2m_file,hdr_file);
 img = reshape(img, length(imgY)*length(imgX), length(imgZ));
 save(cube_file,'img','imgX','imgY','imgZ','-v7.3');

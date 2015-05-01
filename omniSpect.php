@@ -147,7 +147,8 @@
 		),
 		6=>array(	# Matlab image cube
 			1=>array(
-				1=>"application/octet-stream"		# Acceptable MIME types for MAT
+				1=>"application/octet-stream",		# Acceptable MIME types for MAT
+                                2=>"document/unknown"
 			)
 		)
 		

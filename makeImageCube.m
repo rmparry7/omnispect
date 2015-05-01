@@ -201,7 +201,7 @@ if nargin< 5 || isempty(Xsize),
     for i=1:nlines,
         lineScans(i)=sum(y==ylines(i));
     end;
-    scansPerLine=median(lineScans);
+    scansPerLine=floor(median(lineScans));
     Xsize = (max(x)-min(x))/(scansPerLine-1);
 else
     scansPerLine = floor((max(x)-min(x))/Xsize) + 1;
@@ -248,7 +248,16 @@ if issparse(intensity),
     ii(idx+1:end)=[];
     jj(idx+1:end)=[];
     ss(idx+1:end)=[];
+    disp('**********************');
+    disp(['max ii = ' num2str(max(ii))]);
+    disp(['max jj = ' num2str(max(jj))]);
+    disp(['nlines = ' num2str(nlines)]);
+    disp(['scansPerLine = ' num2str(scansPerLine)]);
     img = sparse(ii,jj,ss,nlines*scansPerLine, nmasses);
+    disp(['size(img) = ' num2str(size(img))]);
+    disp(['size(X) = ' num2str(size(X))]);
+    disp(['size(Y) = ' num2str(size(Y))]);
+    disp('**********************');
     fprintf('%s%5.1f%% in %6.1f seconds\n', b, 100, toc);
 else,
     img=zeros(nlines,scansPerLine,nmasses);

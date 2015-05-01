@@ -133,7 +133,8 @@
 		),
 		5=>array(	# Matlab time-series
 			1=>array(
-				1=>"application/octet-stream"		# Acceptable MIME types for MAT
+				1=>"application/octet-stream",		# Acceptable MIME types for MAT
+                                2=>"document/unknown"
 			),
 			2=>array(					# Acceptable MIME types for POS
 				1=>"text/plain",
@@ -214,7 +215,7 @@
 	        echo "\n</select>\n<br />\n";
 
 		# Provide a dropdown box for the level of precision in the $precisions array.
-		echo "Precision: <select name=\"precision\">\n";
+		echo "Precision for Centroided Data: <i>m/z</i><select name=\"precision\">\n";
 	        foreach($precisions as $k=>$v){
         	        echo "<option value=" . $k . (($k==1)?" selected=\"selected\"":"") . ">" . $v . "</option>";
 	        }

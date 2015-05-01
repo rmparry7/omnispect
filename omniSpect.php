@@ -1,7 +1,7 @@
 <HTML>
 <HEAD>
 <TITLE>omniSpect: Multispectral Image Analysis</TITLE>
-<BASE href="http://lateralus.cs.appstate.edu/omnispect/">
+<!--<BASE href="http://lateralus.cs.appstate.edu/omnispect/">-->
 </HEAD>
 
 <BODY>
@@ -174,7 +174,7 @@
 	$analysis=(!isset($_POST['analysis'])?0:$_POST['analysis']);
 	$datatype=(!isset($_POST['datatype'])?1:$_POST['datatype']);
 	$target=(!isset($_POST['target'])?"":$_POST['target']);
-	$precision=(!isset($_POST['precision'])?1:$_POST['precision']);
+	$precision=(!isset($_POST['precision'])?0:$_POST['precision']);
 
 ?>
 
@@ -215,12 +215,16 @@
 	        }
 	        echo "\n</select>\n<br />\n";
 
-		# Provide a dropdown box for the level of precision in the $precisions array.
-		echo "Precision for Centroided Data: <i>m/z</i><select name=\"precision\">\n";
-	        foreach($precisions as $k=>$v){
-        	        echo "<option value=" . $k . (($k==1)?" selected=\"selected\"":"") . ">" . $v . "</option>";
-	        }
-	        echo "\n</select>\n<br \>\n";
+
+		# Add the precision drop down if this is time-series data.
+                if (strpos($datastrs[$datatype], 'time-series') !== FALSE) { 
+			# Provide a dropdown box for the level of precision in the $precisions array.
+			echo "Precision for Centroided Data: <i>m/z</i><select name=\"precision\">\n";
+		        foreach($precisions as $k=>$v){
+	        	        echo "<option value=" . $k . (($k==1)?" selected=\"selected\"":"") . ">" . $v . "</option>";
+		        }
+		        echo "\n</select>\n<br \>\n";
+		}
 
 		# Add upload button
 		echo "

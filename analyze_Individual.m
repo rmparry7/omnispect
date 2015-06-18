@@ -59,7 +59,7 @@ end;
 % read scans for this file
 disp('Reading scans');
 load(cube_file);
-img=reshape(img, length(imgY)*length(imgX), length(imgZ);
+img=reshape(img, length(imgY)*length(imgX), length(imgZ));
 X=img; clear img;
 
 

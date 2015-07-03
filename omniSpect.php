@@ -174,7 +174,7 @@
 	$analysis=(!isset($_POST['analysis'])?0:$_POST['analysis']);
 	$datatype=(!isset($_POST['datatype'])?1:$_POST['datatype']);
 	$target=(!isset($_POST['target'])?"":$_POST['target']);
-	$precision=(!isset($_POST['precision'])?0:$_POST['precision']);
+	$precision=(!isset($_POST['precision'])?1:$_POST['precision']);
 
 ?>
 
@@ -314,11 +314,13 @@
 		
 			$out=array();
 			$cmd=$matlab.' -nodisplay -nodesktop -r "'.$load_function.'('.$load_params.'); exit;" >> ' . $logfile . ' 2>&1';
+                        echo $cmd."<br/>";
 			exec($cmd,$out);
 			if (!file_exists($cubefile)){
+				echo "Error creating MAT cube file \"".$cubefile."\"<br><br>";
 				if (!file_exists($matfile)){
 					#echo "Error creating MAT time-series file with $cmd<br><br>";
-					echo "Error creating MAT time-series file<br><br>";
+					echo "Error creating MAT time-series file \"".$matfile."\" <br><br>";
 					echo print_r($out)."<br><br>";
 					$log_contents = file_get_contents($logfile);
 					echo "log contents = \"" . $log_contents . "\"<br><br>";
@@ -510,15 +512,17 @@
 	}
 ?>
 </TABLE>
-<TABLE border=0 cellpadding=5>
+<TABLE border=0 cellpadding=0>
+<tr><td colspan=3 valign="top" align="center"><div id="figs" style="width: 808px">
+      <a href="http://www.appstate.edu/"><img src="./images/ASUbird_logo_blackandgoldbird_RGB_600x168_60px.png" style="border:0px;"></a>
+</div></td></tr>
 <tr><td colspan=1 valign="top" align="left"><div style="width: 808px">
 <H3>Source code</H3>
 <a href="http://github.com/rmparry7/omnispect">http://github.com/rmparry7/omnispect</a>.<br>
-
 <H3>Publication:</H3>
 <b><a href="http://doi.org/10.1007/s13361-012-0572-y">OmniSpect: An Open MATLAB-Based Tool for Visualization and Analysis of Matrix-Assisted Laser Desorption/Ionization and Desorption Electrospray Ionization Mass Spectrometry Images</a></b><br />
 Parry RM, Galhena AS, Gamage CM, Bennett RV, Wang MD, Fernandez FM.<br />
-<i>Journal of The American Society for Mass Spectrometry, 24(4), pp. 646-649, 2012.</i><br />
+<i>Journal of The American Society for Mass Spectrometry</i>, 24(4), pp. 646-649, 2012.</i><br />
 </div></td></tr>
 </TABLE>
 </BODY>

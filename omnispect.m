@@ -501,6 +501,7 @@ end;
 function handles=loadData(handles)
 steps=1;
 h=waitbar(0,'','Name','Load Data...');
+sigma = 0
 switch get(get(handles.formatgroup,'SelectedObject'),'Tag'),
     case 'radio_CDF'
         cdffile=get(handles.edit_File1,'String');

@@ -22,9 +22,14 @@
         $matlab=$export_display.$matlab_path;
 
 	# make sure there's enough memory and processing time for PHP
-        ini_set("memory_limit","7168M"); // 7 GB
+        ini_set("memory_limit","8000000000"); // 7 GB
 	ini_set("default_socket_timeout","14400"); // 4 hours
 	ini_set("max_execution_time","14400"); // 4 hours
+	ini_set("upload_max_filesize","8000000000");
+	ini_set("post_max_size","8000000000");
+	ini_set("max_input_time","300");
+
+	putenv("HOME=/home/apache");
 
 	# get previous analysis settings or use defaults.
 	$mz = array(1=>(!isset($_POST['mz1'])? 0:$_POST['mz1']),
@@ -125,7 +130,8 @@
 				2=>"application/octet-stream"
 			), 
 			3=>array(
-				1=>"application/octet-stream"		# Acceptable MIME types for HDR
+				1=>"application/octet-stream",		# Acceptable MIME types for HDR
+				2=>"image/vnd.radiance"
 			), 
 			4=>array(
 				1=>"application/octet-stream"		# Acceptable MIME types for IMG
@@ -313,15 +319,15 @@
 			$load_params .= ",'" . $matfile . "','" . $cubefile . "','" . $rawImageFile . "'," . $precisions[$precision];
 		
 			$out=array();
-			$cmd=$matlab.' -nodisplay -nodesktop -r "'.$load_function.'('.$load_params.'); exit;" >> ' . $logfile . ' 2>&1';
-                        echo $cmd."<br/>";
-			exec($cmd,$out);
+			$cmd=$matlab.' -nodisplay -nodesktop -r "'.$load_function.'('.$load_params.'); exit;"'; # >> ' . $logfile . ' 2>&1';
+			exec($cmd, $out, $return_var);
 			if (!file_exists($cubefile)){
 				echo "Error creating MAT cube file \"".$cubefile."\"<br><br>";
+				echo "out = <br>" . print_r($out, true)."<br>";
+				echo "ret = <br>" . $return_var."<br>";
 				if (!file_exists($matfile)){
 					#echo "Error creating MAT time-series file with $cmd<br><br>";
 					echo "Error creating MAT time-series file \"".$matfile."\" <br><br>";
-					echo print_r($out)."<br><br>";
 					$log_contents = file_get_contents($logfile);
 					echo "log contents = \"" . $log_contents . "\"<br><br>";
 					exit("Exiting.");
@@ -338,7 +344,7 @@
 	}
 
 	// Now that we have a 3D data cube, run the analysis
-	// Propogate previous selecions in posted variables for any analysis method.
+	// Propogate previous selections in posted variables for any analysis method.
 	// 1 => individual analysis
 	$cubefile = $target . "_cube.mat";
 	$rawImageFile = $target . "_rawimage.png";

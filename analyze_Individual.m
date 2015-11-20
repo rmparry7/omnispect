@@ -86,6 +86,7 @@ for i=1:nmasses,
     % make figure.
     h(end+1)=figure;
     imagesc(imgX,imgY,reshape(img(:,i),length(imgY), length(imgX)));
+    colormap(jet);
     axis xy equal;
     [pathstr, fname]=fileparts(target);
     if masses(i)<=0,
@@ -125,6 +126,7 @@ if nmasses>1,
     img(:,:,masses<0)=0;
     h(end+1)=figure;
     imagesc(imgX,imgY,sum(img,3));
+    colormap(jet);
     axis xy equal;
     [pathstr, fname]=fileparts(target);
     str='Selected Ion Sum';

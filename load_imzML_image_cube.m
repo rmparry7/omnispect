@@ -97,9 +97,13 @@ disp(['intensity data format is ' intensityFormat]);
 maxCountOfPixelX = -1;
 maxCountOfPixelY = -1;
 maxDimensionX = -1;
+maxDimensionXUnit = -1;
 maxDimensionY = -1;
+maxDimensionYUnit = -1;
 pixelSizeX = -1;
+pixelSizeXUnit = -1;
 pixelSizeY = -1;
+pixelSizeYUnit = -1;
 scanSettingsList = look_children(xml,'scanSettingsList');
 scanSettings = look_children(scanSettingsList,'scanSettings');
 % potentially more than one scanSettings in list, check all of them for
@@ -128,9 +132,20 @@ for i=1:length(scanSettings),
             case 'pixel size y'
                 pixelSizeY = str2double(value);
                 pixelSizeYUnit = look_attributes(cvParam,'unitName');
+            case 'pixel size'
+                pixelSizeX = str2double(value);
+                pixelSizeXUnit = look_attributes(cvParam,'unitName');
+                pixelSizeY = pixelSizeX;
+                pixelSizeYUnit = pixelSizeXUnit;
         end;
     end;
 end;
+[maxDimensionX, maxDimensionXUnit, maxCountOfPixelX, pixelSizeX, pixelSizeXUnit] = ...
+    clean_pixel_stats(maxDimensionX, maxDimensionXUnit, maxCountOfPixelX, pixelSizeX, pixelSizeXUnit);
+[maxDimensionY, maxDimensionYUnit, maxCountOfPixelY, pixelSizeY, pixelSizeYUnit] = ...
+    clean_pixel_stats(maxDimensionY, maxDimensionYUnit, maxCountOfPixelY, pixelSizeY, pixelSizeYUnit);
+    
+
 if maxDimensionX<0 || maxDimensionY<0 || pixelSizeX<0 || pixelSizeY<0 || maxCountOfPixelX<0 || maxCountOfPixelY<0,
     error('Failed to parse pixel information.');
 end
@@ -348,3 +363,23 @@ switch units
     otherwise
         % do nothing (use user defined units.
 end;
+
+function [maxDim, maxDimUnit, maxCount, pixelSize, pixelSizeUnit] = ...
+    clean_pixel_stats(maxDim, maxDimUnit, maxCount, pixelSize, pixelSizeUnit)
+num_undefined = sum([maxDim, maxCount, pixelSize] < 0);
+if num_undefined == 0,
+    return;
+elseif num_undefined == 1
+    if maxDim < 0,
+        maxDim = maxCount * pixelSize;
+        maxDimUnit = pixelSizeUnit;
+    elseif maxCount < 0,
+        maxCount = maxDim / pixelSize;
+    else
+        pixelSize = maxDim / maxCount;
+        pixelSizeUnit = maxDimUnit;
+    end
+else
+    error('imzML file does not provide enough pixel information');
+end;
+    

@@ -77,6 +77,7 @@ for i=1:noc,
 	% Generate image figure
 	h(k)=figure(k); clf;
 	imagesc(imgX,imgY,W(:,:,i));
+        colormap(jet);
 	try
 		axis xy image;
 	catch

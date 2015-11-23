@@ -140,12 +140,52 @@ for i=1:length(scanSettings),
         end;
     end;
 end;
+
+% check imzML for the max x/y index used to compute max count of pixel x/y.
+run = look_children(xml,'run');
+spectrumList = look_children(run,'spectrumList');
+spectra = look_children(spectrumList,'spectrum');
+maxXindex = -1;
+maxYindex = -1;
+for i=1:length(spectra),
+    spectrum = spectra(i);
+    scanList = look_children(spectrum,'scanList');
+    scan = look_children(scanList,'scan');
+    cvParams = look_children(scan,'cvParam');
+    xIndex = -1;
+    yIndex = -1;
+    for j=1:length(cvParams),
+        cvParam = cvParams(j);
+        name = look_attributes(cvParam,'name');
+        switch name
+            case 'position x'
+                xIndex = str2double(look_attributes(cvParam,'value'));
+            case 'position y'
+                yIndex = str2double(look_attributes(cvParam,'value'));
+            otherwise
+                % ignore.
+        end;
+    end;
+    maxXindex = max(maxXindex, xIndex);
+    maxYindex = max(maxYindex, yIndex);
+end
+
+if maxXindex ~= maxCountOfPixelX || maxYindex ~= maxCountOfPixelY,
+    if maxXindex ~= maxCountOfPixelX,
+        warning(sprintf('max scan "position x" (%d) does not match "max count of pixel x" (%d), using %d.\n', maxXindex, maxCountOfPixelX, maxXindex));
+        maxCountOfPixelX = maxXindex;
+    end
+    if maxYindex ~= maxCountOfPixelY,
+        warning(sprintf('max scan "position y" (%d) does not match "max count of pixel y" (%d), using %d.\n', maxYindex, maxCountOfPixelY, maxYindex));
+        maxCountOfPixelY = maxYindex;
+    end
+end
+
 [maxDimensionX, maxDimensionXUnit, maxCountOfPixelX, pixelSizeX, pixelSizeXUnit] = ...
     clean_pixel_stats(maxDimensionX, maxDimensionXUnit, maxCountOfPixelX, pixelSizeX, pixelSizeXUnit);
 [maxDimensionY, maxDimensionYUnit, maxCountOfPixelY, pixelSizeY, pixelSizeYUnit] = ...
     clean_pixel_stats(maxDimensionY, maxDimensionYUnit, maxCountOfPixelY, pixelSizeY, pixelSizeYUnit);
-    
-
+   
 if maxDimensionX<0 || maxDimensionY<0 || pixelSizeX<0 || pixelSizeY<0 || maxCountOfPixelX<0 || maxCountOfPixelY<0,
     error('Failed to parse pixel information.');
 end
@@ -169,7 +209,10 @@ run = look_children(xml,'run');
 spectrumList = look_children(run,'spectrumList');
 count = str2double(look_attributes(spectrumList,'count'));
 if maxCountOfPixelX * maxCountOfPixelY ~= count,
-    warning('Number of scans does not equal the number of pixels.'); %#ok<*WNTAG>
+    w_str = sprintf('width=%d, height=%d, num_pixels=%d, num_spectra=%d\n', ...
+        maxCountOfPixelX, maxCountOfPixelY, ...
+        maxCountOfPixelX*maxCountOfPixelY, count);
+    warning(['Number of scans does not equal the number of pixels.\n' w_str]); %#ok<*WNTAG>
 end;
 
 intensityImage = cell(maxCountOfPixelY,maxCountOfPixelX);
@@ -205,7 +248,8 @@ for i=1:length(spectra),if (rem(i,1000)==0), fprintf('.'); end;
         end;
     end;
     if (xIndex<0) || (yIndex<0) || (xIndex > maxCountOfPixelX) || (yIndex > maxCountOfPixelY),
-        error(['Failed to find (x,y) index for scan ' num2str(i)]);
+        e_str = sprintf('xIndex=%d yIndex=%d, maxCountOfPixelX=%d, maxCountOfPixelY=%d\n', xIndex, yIndex, maxCountOfPixelX, maxCountOfPixelY);
+        warning(['Failed to find (x,y) index for scan ' num2str(i) '\n' e_str]);
     end;
     
     % binary data

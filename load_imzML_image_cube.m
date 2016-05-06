@@ -117,26 +117,42 @@ for i=1:length(scanSettings),
         value = look_attributes(cvParam,'value');
         switch name,
             case 'max count of pixel x'
+                disp([name ' : ' value]);
                 maxCountOfPixelX = str2double(value);
             case 'max count of pixel y'
+                disp([name ' : ' value]);
                 maxCountOfPixelY = str2double(value);
             case 'max dimension x'
+                disp([name ' : ' value]);
                 maxDimensionX = str2double(value);
                 maxDimensionXUnit = look_attributes(cvParam,'unitName');
+                disp(['max dimension x unit : ' num2str(maxDimensionXUnit)]);
             case 'max dimension y'
+                disp([name ' : ' value]);
                 maxDimensionY = str2double(value);
                 maxDimensionYUnit = look_attributes(cvParam,'unitName');
+                disp(['max dimension y unit : ' num2str(maxDimensionYUnit)]);
             case 'pixel size x'
+                disp([name ' : ' value]);
                 pixelSizeX = str2double(value);
                 pixelSizeXUnit = look_attributes(cvParam,'unitName');
+                disp(['pixel size x unit : ' num2str(pixelSizeXUnit)]);
             case 'pixel size y'
+                disp([name ' : ' value]);
                 pixelSizeY = str2double(value);
                 pixelSizeYUnit = look_attributes(cvParam,'unitName');
+                disp(['pixel size y unit : ' num2str(pixelSizeYUnit)]);
             case 'pixel size'
+                disp([name ' : ' value]);
                 pixelSizeX = str2double(value);
                 pixelSizeXUnit = look_attributes(cvParam,'unitName');
                 pixelSizeY = pixelSizeX;
                 pixelSizeYUnit = pixelSizeXUnit;
+                disp(['pixel size x : ' num2str(pixelSizeX)]);
+                disp(['pixel size x unit : ' num2str(pixelSizeXUnit)]);
+                disp(['pixel size y : ' num2str(pixelSizeY)]);
+                disp(['pixel size y unit : ' num2str(pixelSizeYUnit)]);
+               
         end;
     end;
 end;
@@ -170,6 +186,9 @@ for i=1:length(spectra),
     maxYindex = max(maxYindex, yIndex);
 end
 
+disp(['max x index : ' num2str(maxXindex)])
+disp(['max y index : ' num2str(maxYindex)])
+
 if maxXindex ~= maxCountOfPixelX || maxYindex ~= maxCountOfPixelY,
     if maxXindex ~= maxCountOfPixelX,
         warning(sprintf('max scan "position x" (%d) does not match "max count of pixel x" (%d), using %d.\n', maxXindex, maxCountOfPixelX, maxXindex));
@@ -180,6 +199,9 @@ if maxXindex ~= maxCountOfPixelX || maxYindex ~= maxCountOfPixelY,
         maxCountOfPixelY = maxYindex;
     end
 end
+
+[maxDimensionX, maxDimensionXUnit, maxCountOfPixelX, pixelSizeX, pixelSizeXUnit]
+[maxDimensionY, maxDimensionYUnit, maxCountOfPixelY, pixelSizeY, pixelSizeYUnit]
 
 [maxDimensionX, maxDimensionXUnit, maxCountOfPixelX, pixelSizeX, pixelSizeXUnit] = ...
     clean_pixel_stats(maxDimensionX, maxDimensionXUnit, maxCountOfPixelX, pixelSizeX, pixelSizeXUnit);
@@ -410,20 +432,25 @@ end;
 
 function [maxDim, maxDimUnit, maxCount, pixelSize, pixelSizeUnit] = ...
     clean_pixel_stats(maxDim, maxDimUnit, maxCount, pixelSize, pixelSizeUnit)
-num_undefined = sum([maxDim, maxCount, pixelSize] < 0);
-if num_undefined == 0,
-    return;
-elseif num_undefined == 1
-    if maxDim < 0,
-        maxDim = maxCount * pixelSize;
-        maxDimUnit = pixelSizeUnit;
-    elseif maxCount < 0,
-        maxCount = maxDim / pixelSize;
+if any([maxDim, maxCount, pixelSize] < 0)
+    if sum([maxDim, maxCount, pixelSize] < 0) == 1
+        if maxDim < 0,
+            maxDim = maxCount * pixelSize;
+            maxDimUnit = pixelSizeUnit;
+        elseif maxCount < 0,
+            maxCount = maxDim / pixelSize;
+        else
+            pixelSize = maxDim / maxCount;
+            pixelSizeUnit = maxDimUnit;
+        end
+    elseif maxCount >= 0
+        pixelSize = 1;
+        maxDim = maxCount;
+        maxDimUnit = 'pixels';
+        pixelSizeUnit = 'pixels';
+        warning('imzML file does not provide size information: using arbitrary ''pixel'' units');
     else
-        pixelSize = maxDim / maxCount;
-        pixelSizeUnit = maxDimUnit;
-    end
-else
-    error('imzML file does not provide enough pixel information');
+        error('imzML file does not provide enough pixel information');
+    end;
 end;
     

@@ -108,9 +108,9 @@ for i=1:nmasses,
         print('-dpng','-r300',[figname '.png']);
     end;
 end;
-if ndims(img) > 2,
+%if ndims(img) > 2,
     img = reshape(img, length(imgY), length(imgX), nmasses);
-end
+%end
 % handle bad masses
 masses=masses(kmasses);
 ranges=ranges(kmasses);

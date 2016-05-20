@@ -104,8 +104,8 @@ for i=1:nmasses,
     fig_files
     if masses(i) >= 0,
         figname = fig_files{i};
-        saveas(gcf,[figname '.fig']);
-        print('-dpng','-r300',[figname '.png']);
+        saveas(h(end),[figname '.fig']);
+        print(h(end),'-dpng','-r300',[figname '.png']);
     end;
 end;
 %if ndims(img) > 2,
@@ -136,8 +136,8 @@ if nmasses>1,
     colorbar;
     polish;
     % Save sum image
-    saveas(gcf,[sum_file '.fig']);
-    print('-dpng','-r300',[sum_file '.png']);
+    saveas(h(end),[sum_file '.fig']);
+    print(h(end),'-dpng','-r300',[sum_file '.png']);
 
     % Making Composite Image
     % normalize each image to sum to one
@@ -154,8 +154,8 @@ if nmasses>1,
     ylabel('Y (microns)');
     polish;
     % Save composite image
-    saveas(gcf,[composite_file '.fig']);
-    print('-dpng','-r300',[composite_file '.png']);
+    saveas(h(end),[composite_file '.fig']);
+    print(h(end),'-dpng','-r300',[composite_file '.png']);
 
 end;
 

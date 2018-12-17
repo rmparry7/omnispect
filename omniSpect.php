@@ -88,7 +88,8 @@
 				1=>"application/octet-stream",		# Acceptable MIME types for CDF
 				2=>"application/vnd.wolfram.cdf",
 				3=>"text/plain",
-				4=>"application/x-netcdf"
+				4=>"application/x-netcdf",
+				5=>"application/x-cdf"
 			), 
 			2=>array(					# Acceptable MIME types for POS
 				1=>"text/plain",
@@ -524,7 +525,8 @@
 </div></td></tr>
 <tr><td colspan=1 valign="top" align="left"><div style="width: 808px">
 <H3>Source code</H3>
-<a href="http://github.com/rmparry7/omnispect">http://github.com/rmparry7/omnispect</a>.<br>
+<a href="http://cs.appstate.edu/~rmp/omnispect.zip">http://cs.appstate.edu/~rmp/omnispect.zip</a>.<br>
+<a href="https://github.com/rmparry7/omnispect/">http://github.com/rmparry7/omnispect/</a>.<br>
 <H3>Publication:</H3>
 <b><a href="http://doi.org/10.1007/s13361-012-0572-y">OmniSpect: An Open MATLAB-Based Tool for Visualization and Analysis of Matrix-Assisted Laser Desorption/Ionization and Desorption Electrospray Ionization Mass Spectrometry Images</a></b><br />
 Parry RM, Galhena AS, Gamage CM, Bennett RV, Wang MD, Fernandez FM.<br />

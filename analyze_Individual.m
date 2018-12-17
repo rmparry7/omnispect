@@ -109,7 +109,7 @@ for i=1:nmasses,
     end;
 end;
 %if ndims(img) > 2,
-    img = reshape(img, length(imgY), length(imgX), nmasses);
+    img = reshape(img, length(imgY), length(imgX), size(img,2));
 %end
 % handle bad masses
 masses=masses(kmasses);
